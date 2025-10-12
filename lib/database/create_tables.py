@@ -1,6 +1,9 @@
-def create_tables(self) -> None:
+from .connection import connection
+
+
+def create_tables(connection):
     """Создание всех таблиц"""
-    with self.get_connection() as conn:
+    with connection as conn:
         with conn.cursor() as cur:
             # Создание таблицы users
             cur.execute(
@@ -9,8 +12,7 @@ def create_tables(self) -> None:
                         id SERIAL PRIMARY KEY,
                         login VARCHAR(255) NOT NULL UNIQUE,
                         email VARCHAR(255) NOT NULL UNIQUE,
-                        password VARCHAR(255) NOT NULL,
-                        created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        password VARCHAR(255) NOT NULL
                     )
                 """
             )
@@ -20,8 +22,18 @@ def create_tables(self) -> None:
                 """
                     CREATE TABLE IF NOT EXISTS schedules(
                         id SERIAL PRIMARY KEY,
-                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                        created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        name VARCHAR(255) NOT NULL
+                    )
+                """
+            )
+
+            # Создание таблицы schedule_user
+            cur.execute(
+                """
+                    CREATE TABLE IF NOT EXISTS schedule_user(
+                        schedule_id INTEGER REFERENCES schedules(id) ON DELETE CASCADE,
+                        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                        PRIMARY KEY (schedule_id, user_id)
                     )
                 """
             )
@@ -39,7 +51,7 @@ def create_tables(self) -> None:
                         endDate DATE NOT NULL,
                         startTime TIME WITHOUT TIME ZONE NOT NULL,
                         endTime TIME WITHOUT TIME ZONE NOT NULL,
-                        repeat_pattern VARCHAR(255) NOT NULL
+                        repeat VARCHAR(255) NOT NULL
                     )
                 """
             )
@@ -48,10 +60,10 @@ def create_tables(self) -> None:
             cur.execute(
                 """
                     CREATE TABLE IF NOT EXISTS comments(
-                        id SERIAL PRIMARY KEY,
                         lesson_id INTEGER NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
                         date DATE NOT NULL,
-                        text TEXT NOT NULL
+                        text TEXT NOT NULL,
+                        PRIMARY KEY (lesson_id, date)
                     )
                 """
             )
@@ -60,21 +72,9 @@ def create_tables(self) -> None:
             cur.execute(
                 """
                     CREATE TABLE IF NOT EXISTS attendance(
-                        id SERIAL PRIMARY KEY,
                         lesson_id INTEGER NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
                         date DATE NOT NULL,
-                        status VARCHAR(50) DEFAULT 'present'
-                    )
-                """
-            )
-
-            # Таблица для связи многие-ко-многим (если нужно)
-            cur.execute(
-                """
-                    CREATE TABLE IF NOT EXISTS lesson_students(
-                        lesson_id INTEGER REFERENCES lessons(id) ON DELETE CASCADE,
-                        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-                        PRIMARY KEY (lesson_id, student_id)
+                        PRIMARY KEY (lesson_id, date)
                     )
                 """
             )
