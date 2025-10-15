@@ -1,2 +1,2 @@
 .env
-.pyache/
+__pycache__/
