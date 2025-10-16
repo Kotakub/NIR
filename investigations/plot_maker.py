@@ -1,4 +1,3 @@
-# lib/plotter.py
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from typing import List, Dict, Any, Optional, Tuple, Union
@@ -20,7 +19,7 @@ class ResearchPlotter:
         """Настройка стиля графиков"""
         plt.style.use('default')
         mpl.rcParams.update({
-            'font.family': 'DejaVu Sans',  # Поддержка русского языка
+            'font.family': 'DejaVu Sans',  
             'font.size': 12,
             'figure.figsize': (10, 6),
             'axes.titlesize': 14,

@@ -1,4 +1,3 @@
-# generate_data.py
 import random
 import datetime
 import psycopg
@@ -15,7 +14,7 @@ class DataGenerator:
         placeholders = ', '.join(['%s'] * len(table_data[0]))
         query = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
         
-        # Используем контекстный менеджер из DataBaseMain
+    
         with self.database_connection_func() as conn:
             with conn.cursor() as cur:
                 for data in table_data:
@@ -26,16 +25,15 @@ class DataGenerator:
         if table_name == "":
             return
         
-        conn = self.database_connection_func()
-        try:
-            with conn.cursor() as cur:
-                cur.execute(f"DELETE FROM {table_name}")
-            conn.commit()
-        except Exception as e:
-            conn.rollback()
-            raise e
-        finally:
-            conn.close()
+        
+        with self.database_connection_func() as conn:
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(f"DELETE FROM {table_name}")
+                conn.commit()
+            except Exception as e:
+                conn.rollback()
+                raise e
         
     
     def generate_users(self, n: int = 1, save: bool = True):
@@ -177,34 +175,19 @@ class DataGenerator:
     
     
     def get_schedule_ids(self):
-        conn = self.database_connection_func()
-        try:
+        with self.database_connection_func() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT id FROM schedules")
                 return [row[0] for row in cur.fetchall()]
-        except Exception:
-            return []
-        finally:
-            conn.close()
-            
+                
     def get_user_ids(self):
-        conn = self.database_connection_func()
-        try:
+        with self.database_connection_func() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT id FROM users")
                 return [row[0] for row in cur.fetchall()]
-        except Exception:
-            return []
-        finally:
-            conn.close()
-            
+                
     def get_lesson_ids(self):
-        conn = self.database_connection_func()
-        try:
+        with self.database_connection_func() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT id FROM lessons")
                 return [row[0] for row in cur.fetchall()]
-        except Exception:
-            return []
-        finally:
-            conn.close()

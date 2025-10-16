@@ -1,10 +1,9 @@
-# custom_db/schema.py
 import json
 import os
 from typing import List, Dict, Any
 from dataclasses import dataclass, asdict
 from .storage import ColumnDefinition
-from .config import custom_db_config
+from .config import bad_subd_config
 
 @dataclass
 class TableSchema:
@@ -37,7 +36,7 @@ class SchemaManager:
     """Управление схемами таблиц"""
     
     def __init__(self, schema_dir: str = None):
-        self.schema_dir = schema_dir or custom_db_config.SCHEMA_DIR
+        self.schema_dir = schema_dir or bad_subd_config.SCHEMA_DIR
     
     def save_schema(self, schema: TableSchema) -> None:
         """Сохранение схемы в файл"""

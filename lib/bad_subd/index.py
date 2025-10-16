@@ -1,9 +1,8 @@
-# custom_db/index.py
 import struct
 import os
 from typing import List, Dict, Any
 from collections import defaultdict
-from .config import custom_db_config
+from .config import bad_subd_config
 
 class SimpleHashIndex:
     """Простой хэш-индекс для числовых колонок"""
@@ -11,7 +10,7 @@ class SimpleHashIndex:
     def __init__(self, table_name: str, column_name: str):
         self.table_name = table_name
         self.column_name = column_name
-        self.filename = os.path.join(custom_db_config.INDEX_DIR, f"{table_name}_{column_name}.idx")
+        self.filename = os.path.join(bad_subd_config.INDEX_DIR, f"{table_name}_{column_name}.idx")
         self._index_dict = defaultdict(list)
         self._load_index()
     

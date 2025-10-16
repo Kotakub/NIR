@@ -1,9 +1,8 @@
-# custom_db/storage.py
 import struct
 import os
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
-from .config import custom_db_config
+from .config import bad_subd_config
 
 @dataclass
 class ColumnDefinition:
@@ -25,10 +24,10 @@ class UTF32RowStorage:
         
         for col in self.columns:
             if col.data_type == 'INT':
-                size += custom_db_config.INT_SIZE
+                size += bad_subd_config.INT_SIZE
             elif col.data_type == 'VARCHAR':
                 # Каждый символ занимает 4 байта в UTF-32
-                size += col.size * custom_db_config.CHAR_SIZE
+                size += col.size * bad_subd_config.CHAR_SIZE
                 
         return size
     
@@ -129,8 +128,8 @@ class UTF32RowStorage:
                 return offset
                 
             if col.data_type == 'INT':
-                offset += custom_db_config.INT_SIZE
+                offset += bad_subd_config.INT_SIZE
             elif col.data_type == 'VARCHAR':
-                offset += col.size * custom_db_config.CHAR_SIZE
+                offset += col.size * bad_subd_config.CHAR_SIZE
                 
         raise ValueError(f"Column {column_name} not found")

@@ -1,17 +1,16 @@
-# custom_db/engine.py
 import os
 from typing import List, Dict, Any, Optional
 from .schema import TableSchema, SchemaManager, ColumnDefinition
 from .storage import UTF32RowStorage
 from .index import SimpleHashIndex
 from .table_file import TableFileManager
-from .config import custom_db_config
+from .config import bad_subd_config
 
-class CustomDBEngine:
+class BadSUBDEngine:
     """Движок собственной СУБД с UTF-32 хранением"""
     
     def __init__(self, base_path: str = None):
-        self.base_path = base_path or custom_db_config.BASE_DATA_DIR
+        self.base_path = base_path or bad_subd_config.BASE_DATA_DIR
         self.schema_manager = SchemaManager()
         self.table_manager = TableFileManager()
         self.indexes: Dict[str, Dict[str, SimpleHashIndex]] = {}
@@ -28,7 +27,7 @@ class CustomDBEngine:
             if col['type'] == 'INT':
                 column_defs.append(ColumnDefinition(col['name'], 'INT'))
             elif col['type'] == 'VARCHAR':
-                size = col.get('size', custom_db_config.MAX_VARCHAR_SIZE)
+                size = col.get('size', bad_subd_config.MAX_VARCHAR_SIZE)
                 column_defs.append(ColumnDefinition(col['name'], 'VARCHAR', size))
             else:
                 raise ValueError(f"Unsupported data type: {col['type']}")

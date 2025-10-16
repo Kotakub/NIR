@@ -1,4 +1,3 @@
-# database.py
 import psycopg
 from contextlib import contextmanager
 
@@ -103,3 +102,29 @@ class DataBaseMain:
                         )
                     """
                 )
+                
+    def create_fulltext_indexes(self, test_db: bool = False):
+        with self.get_database_connection(test_db) as conn:
+            with conn.cursor() as cur:
+                # Добавляем колонку для tsvector если её нет
+                try:
+                    cur.execute("""
+                        ALTER TABLE comments ADD COLUMN IF NOT EXISTS text_tsvector tsvector
+                    """)
+                    
+                    # Обновляем tsvector для существующих данных
+                    cur.execute("""
+                        UPDATE comments SET text_tsvector = to_tsvector('russian', text)
+                        WHERE text_tsvector IS NULL
+                    """)
+                    
+                    # Создаем GIN индекс для полнотекстового поиска
+                    cur.execute("""
+                        CREATE INDEX IF NOT EXISTS idx_comments_text_ft 
+                        ON comments USING GIN(text_tsvector)
+                    """)
+                    
+                    print("Полнотекстовые индексы созданы успешно")
+                    
+                except Exception as e:
+                    print(f"Ошибка при создании полнотекстовых индексов: {e}")

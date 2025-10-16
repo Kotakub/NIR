@@ -1,4 +1,3 @@
-# sandbox.py
 import psycopg
 from typing import Optional, Callable
 
