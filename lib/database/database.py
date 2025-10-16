@@ -3,13 +3,15 @@ import psycopg
 from contextlib import contextmanager
 
 class DataBaseMain:
-    def __init__(self, DATABASE_URL: str):
+    def __init__(self, DATABASE_URL: str, TEST_DATABASE_URL: str = None):
         self.DATABASE_URL = DATABASE_URL
+        self.TEST_DATABASE_URL = TEST_DATABASE_URL
         
     @contextmanager
-    def get_database_connection(self):
+    def get_database_connection(self, test_db: bool = False):
         """Контекстный менеджер для подключения к БД"""
-        conn = psycopg.connect(self.DATABASE_URL)
+        db_url = self.TEST_DATABASE_URL if test_db else self.DATABASE_URL
+        conn = psycopg.connect(db_url)
         try:
             yield conn
             conn.commit()
@@ -19,13 +21,14 @@ class DataBaseMain:
         finally:
             conn.close()
 
-    def get_connection(self):
+    def get_connection(self, test_db: bool = False):
         """Простая функция для получения соединения (без контекстного менеджера)"""
-        return psycopg.connect(self.DATABASE_URL)
+        db_url = self.TEST_DATABASE_URL if test_db else self.DATABASE_URL
+        return psycopg.connect(db_url)
 
-    def create_tables(self):
+    def create_tables(self, test_db: bool = False):
         """Создание всех таблиц"""
-        with self.get_database_connection() as conn:
+        with self.get_database_connection(test_db) as conn:
             with conn.cursor() as cur:
                 # Создание таблицы users
                 cur.execute(

@@ -1,0 +1,56 @@
+{
+  "table_name": "lessons",
+  "columns": [
+    {
+      "name": "id",
+      "data_type": "INT",
+      "size": 0
+    },
+    {
+      "name": "schedule_id",
+      "data_type": "INT",
+      "size": 0
+    },
+    {
+      "name": "teacher_name",
+      "data_type": "VARCHAR",
+      "size": 100
+    },
+    {
+      "name": "subject_name",
+      "data_type": "VARCHAR",
+      "size": 100
+    },
+    {
+      "name": "place",
+      "data_type": "VARCHAR",
+      "size": 100
+    },
+    {
+      "name": "startDate",
+      "data_type": "VARCHAR",
+      "size": 20
+    },
+    {
+      "name": "endDate",
+      "data_type": "VARCHAR",
+      "size": 20
+    },
+    {
+      "name": "startTime",
+      "data_type": "VARCHAR",
+      "size": 10
+    },
+    {
+      "name": "endTime",
+      "data_type": "VARCHAR",
+      "size": 10
+    },
+    {
+      "name": "repeat",
+      "data_type": "VARCHAR",
+      "size": 50
+    }
+  ],
+  "primary_key": null
+}

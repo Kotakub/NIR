@@ -15,18 +15,11 @@ class DataGenerator:
         placeholders = ', '.join(['%s'] * len(table_data[0]))
         query = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
         
-        # Используем контекстный менеджер для соединения
-        conn = self.database_connection_func()
-        try:
+        # Используем контекстный менеджер из DataBaseMain
+        with self.database_connection_func() as conn:
             with conn.cursor() as cur:
                 for data in table_data:
                     cur.execute(query, list(data.values()))
-            conn.commit()
-        except Exception as e:
-            conn.rollback()
-            raise e
-        finally:
-            conn.close()
                     
     
     def delete_data(self, table_name: str):
@@ -45,7 +38,7 @@ class DataGenerator:
             conn.close()
         
     
-    def generate_users(self, n: int = 1):
+    def generate_users(self, n: int = 1, save: bool = True):
         users = []
         for i in range(n):
             login = f"user_{i}_{datetime.datetime.now().isoformat()}"
@@ -56,10 +49,13 @@ class DataGenerator:
                 'email': email,
                 'password': password
             })
-        self.insert_data(users, "users")
+        if save:
+            self.insert_data(users, "users")
+        else:
+            return users
         
     
-    def generate_schedules(self, n: int = 1):
+    def generate_schedules(self, n: int = 1, save: bool = True):
         schedules = []
         for i in range(n):
             name = f"schedule_{i}_{datetime.datetime.now().isoformat()}"
@@ -69,7 +65,7 @@ class DataGenerator:
         self.insert_data(schedules, "schedules")
         
     
-    def generate_lessons(self, n: int = 1):
+    def generate_lessons(self, n: int = 1, save: bool = True):
         lessons = []
         schedule_ids = self.get_schedule_ids()
         
@@ -112,10 +108,13 @@ class DataGenerator:
                 'endTime': end_time,
                 'repeat': random.choice(repeat_options)
             })
-        self.insert_data(lessons, "lessons")
+        if save:
+            self.insert_data(lessons, "lessons")
+        else: 
+            return lessons
     
     
-    def generate_attendance(self, n: int = 1):
+    def generate_attendance(self, n: int = 1, save: bool = True):
         attendance = []
         lesson_ids = self.get_lesson_ids()
         
@@ -130,10 +129,13 @@ class DataGenerator:
                 'lesson_id': lesson_id,
                 'date': date
             })
-        self.insert_data(attendance, "attendance")
+        if save:
+            self.insert_data(attendance, "attendance")
+        else: 
+            return attendance
     
     
-    def generate_comments(self, n: int = 1):
+    def generate_comments(self, n: int = 1, save: bool = True):
         comments = []
         lesson_ids = self.get_lesson_ids()
         
@@ -150,11 +152,13 @@ class DataGenerator:
                 'date': date,
                 'text': text
             })
-        self.insert_data(comments, "comments")
-        return
+        if save:
+            self.insert_data(comments, "comments")
+        else:
+            return comments
     
     
-    def generate_schedule_user(self, n: int = 1):
+    def generate_schedule_user(self, n: int = 1, save: bool = True):
         user_ids = self.get_user_ids()
         schedule_ids = self.get_schedule_ids()
         schedule_user = []
@@ -165,8 +169,11 @@ class DataGenerator:
                 "user_id": user_id,
                 "schedule_id": schedule_id
             })
-        self.insert_data(schedule_user, "schedule_user")
-        return
+        if save:
+            self.insert_data(schedule_user, "schedule_user")
+        else:
+            return schedule_user
+        
     
     
     def get_schedule_ids(self):
@@ -175,9 +182,10 @@ class DataGenerator:
             with conn.cursor() as cur:
                 cur.execute("SELECT id FROM schedules")
                 return [row[0] for row in cur.fetchall()]
+        except Exception:
+            return []
         finally:
             conn.close()
-            
             
     def get_user_ids(self):
         conn = self.database_connection_func()
@@ -185,6 +193,8 @@ class DataGenerator:
             with conn.cursor() as cur:
                 cur.execute("SELECT id FROM users")
                 return [row[0] for row in cur.fetchall()]
+        except Exception:
+            return []
         finally:
             conn.close()
             
@@ -194,5 +204,7 @@ class DataGenerator:
             with conn.cursor() as cur:
                 cur.execute("SELECT id FROM lessons")
                 return [row[0] for row in cur.fetchall()]
+        except Exception:
+            return []
         finally:
             conn.close()
