@@ -19,13 +19,15 @@ class DataGenerator:
             with conn.cursor() as cur:
                 for data in table_data:
                     cur.execute(query, list(data.values()))
-                    
+               
+               
+    def update_data(self, table_data, table_name: str):
+        self.delete_data(table_name)
+        self.insert_data(table_data, table_name)
     
     def delete_data(self, table_name: str):
         if table_name == "":
             return
-        
-        
         with self.database_connection_func() as conn:
             try:
                 with conn.cursor() as cur:

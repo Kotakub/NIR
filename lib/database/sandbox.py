@@ -41,24 +41,28 @@ class SandboxManager:
             # Получаем данные из основной БД используя get_database_connection
             with self.db.get_database_connection(test_db=False) as conn:
                 with conn.cursor() as cur:
-                    cur.execute(f"SELECT * FROM {table_name}")
+                    # Исключаем text_tsvector из выборки данных
+                    cur.execute(f"""
+                        SELECT {', '.join([
+                            col for col in self._get_table_columns(table_name, False) 
+                            if col != 'text_tsvector'
+                        ])} 
+                        FROM {table_name}
+                    """)
                     data = cur.fetchall()
             
             if not data:
                 print(f"Таблица {table_name} пуста, пропускаем")
                 return
             
-            # Получаем информацию о столбцах
-            with self.db.get_database_connection(test_db=False) as conn:
-                with conn.cursor() as cur:
-                    cur.execute(f"""
-                        SELECT column_name 
-                        FROM information_schema.columns 
-                        WHERE table_name = %s 
-                        ORDER BY ordinal_position
-                    """, (table_name,))
-                    columns = [row[0] for row in cur.fetchall()]
+            # Получаем информацию о столбцах, исключая text_tsvector
+            columns = [col for col in self._get_table_columns(table_name, False) 
+                    if col != 'text_tsvector']
             
+            if not columns:
+                print(f"Нет столбцов для копирования в таблице {table_name}, пропускаем")
+                return
+                
             columns_str = ', '.join(columns)
             placeholders = ', '.join(['%s'] * len(columns))
             query = f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})"
@@ -73,6 +77,23 @@ class SandboxManager:
         except Exception as e:
             print(f"Ошибка при копировании данных таблицы {table_name}: {e}")
             raise
+        
+    def _get_table_columns(self, table_name: str, exclude_tsvector: bool = True):
+        """Вспомогательный метод для получения списка столбцов таблицы"""
+        with self.db.get_database_connection(test_db=False) as conn:
+            with conn.cursor() as cur:
+                cur.execute(f"""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = %s 
+                    ORDER BY ordinal_position
+                """, (table_name,))
+                columns = [row[0] for row in cur.fetchall()]
+        
+        if exclude_tsvector:
+            columns = [col for col in columns if col != 'text_tsvector']
+        
+        return columns
     
     def copy_all_data_to_sandbox(self):
         """Копирование всех данных из основной БД в песочницу"""

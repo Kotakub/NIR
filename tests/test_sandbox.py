@@ -10,13 +10,11 @@ class TestSandbox:
     """Тестирование операций с песочницей"""
     
     def __init__(self):
-        self.db_main = DataBaseMain(settings.DATABASE_URL)
-        self.db_test = DataBaseMain(settings.TEST_DATABASE_URL)
-        self.sandbox_manager = SandboxManager(
-            self.db_main.get_connection,
-            self.db_test.get_connection,
+        self.db_main = DataBaseMain(
+            settings.DATABASE_URL, 
             settings.TEST_DATABASE_URL
         )
+        self.sandbox_manager = SandboxManager(self.db_main)
     
     def test_sandbox_creation(self):
         """Тестирование создания песочницы"""

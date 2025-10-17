@@ -258,72 +258,7 @@ class IndexResearch:
             "delete_queries_performance"
         )
     
-    def research_join_queries(self):
-        """Исследование запросов с объединением таблиц"""
-        print("=== Исследование запросов с JOIN ===")
-        
-        # Подготавливаем данные
-        self.data_gen.generate_users(1000)
-        self.data_gen.generate_schedules(50)
-        self.data_gen.generate_lessons(2000)
-        self.data_gen.generate_schedule_user(500)
-        
-        table_sizes = [100, 500, 1000, 2000]
-        join_results = {
-            'INNER JOIN lessons-schedules': [],
-            'LEFT JOIN users-schedule_user': [],
-            '3-table JOIN': []
-        }
-        
-        for size in table_sizes:
-            print(f"Тестирование JOIN для {size} записей...")
-            
-            # INNER JOIN: lessons + schedules
-            time_inner = self.timer.measure_query("""
-                SELECT l.*, s.name 
-                FROM lessons l 
-                INNER JOIN schedules s ON l.schedule_id = s.id 
-                LIMIT %s
-            """, (size,), iterations=5)
-            join_results['INNER JOIN lessons-schedules'].append(time_inner)
-            
-            # LEFT JOIN: users + schedule_user
-            time_left = self.timer.measure_query("""
-                SELECT u.login, su.schedule_id 
-                FROM users u 
-                LEFT JOIN schedule_user su ON u.id = su.user_id 
-                LIMIT %s
-            """, (size,), iterations=5)
-            join_results['LEFT JOIN users-schedule_user'].append(time_left)
-            
-            # JOIN 3 таблиц: users + schedule_user + schedules
-            time_three = self.timer.measure_query("""
-                SELECT u.login, s.name 
-                FROM users u 
-                JOIN schedule_user su ON u.id = su.user_id 
-                JOIN schedules s ON su.schedule_id = s.id 
-                LIMIT %s
-            """, (size,), iterations=3)
-            join_results['3-table JOIN'].append(time_three)
-            
-            print(f"  INNER: {time_inner:.4f}, LEFT: {time_left:.4f}, 3-table: {time_three:.4f} сек")
-        
-        # Строим график
-        self.plotter.create_line_plot(
-            table_sizes,
-            join_results,
-            "Производительность JOIN запросов",
-            "Количество возвращаемых записей",
-            "Время выполнения (сек)",
-            "join_queries_performance"
-        )
-    
-    def __init__(self, db: DataBaseMain):
-        self.db = db
-        self.plotter = ResearchPlotter()
-        self.timer = QueryTimer(db.get_database_connection)
-        self.data_gen = DataGenerator(db.get_database_connection)
-        
+     
     def research_numeric_indexes(self):
         """Исследование числовых индексов (таблицы users)"""
         print("=== Исследование числовых индексов ===")
@@ -358,7 +293,7 @@ class IndexResearch:
             self.data_gen.delete_data("users_no_pk")
             self.data_gen.insert_data(users_data, "users_no_pk")
             
-            # Тесты SELECT (оставляем как есть)
+            # Тесты SELECT
             time_t1_eq = self.timer.measure_query(
                 "SELECT * FROM users WHERE id = %s", 
                 (size // 2,), 
@@ -385,33 +320,23 @@ class IndexResearch:
             results_select_neq['users (с PK)'].append(time_t1_neq)
             results_select_neq['users_no_pk (без PK)'].append(time_t2_neq)
             
-            # Тест INSERT - ручное измерение времени
-            insert_iterations = 30
-            total_t1_time = 0
-            total_t2_time = 0
+            # Тест INSERT с timeit
+            def insert_user_with_pk():
+                test_user = self.data_gen.generate_users(1, save=False)[0]
+                self.data_gen.insert_data([test_user], "users")
             
-            for i in range(insert_iterations):
-                # Генерируем уникального пользователя для T1
-                test_user_t1 = self.data_gen.generate_users(1, save=False)[0]
-                
-                # Измеряем INSERT в T1
-                start_time = time.time()
-                self.data_gen.insert_data([test_user_t1], "users")
-                total_t1_time += time.time() - start_time
-                
-                # Генерируем уникального пользователя для T2
-                test_user_t2 = self.data_gen.generate_users(1, save=False)[0]
-                test_user_t2['id'] = size + i + 1
-                
-                # Измеряем INSERT в T2
-                start_time = time.time()
-                self.data_gen.insert_data([test_user_t2], "users_no_pk")
-                total_t2_time += time.time() - start_time
+            def insert_user_without_pk():
+                test_user = self.data_gen.generate_users(1, save=False)[0]
+                test_user['id'] = size + 1  # Уникальный ID
+                self.data_gen.insert_data([test_user], "users_no_pk")
             
-            results_insert['users (с PK)'].append(total_t1_time / insert_iterations)
-            results_insert['users_no_pk (без PK)'].append(total_t2_time / insert_iterations)
+            time_insert1 = timeit.timeit(insert_user_with_pk, number=30) / 30
+            time_insert2 = timeit.timeit(insert_user_without_pk, number=30) / 30
+            
+            results_insert['users (с PK)'].append(time_insert1)
+            results_insert['users_no_pk (без PK)'].append(time_insert2)
         
-        # Построение графиков - исправленные вызовы
+        # Построение графиков
         self.plotter.create_line_plot(
             table_sizes,
             results_select_eq,
@@ -437,8 +362,8 @@ class IndexResearch:
             "Количество записей в таблице",
             "Время выполнения (сек)",
             "numeric_insert"
-        )       
-        
+        )
+    
     def research_string_indexes(self):
         """Исследование строковых индексов (таблицы users - поле login)"""
         print("=== Исследование строковых индексов ===")
@@ -534,30 +459,20 @@ class IndexResearch:
             results_select_like_contains['users (с индексом login)'].append(time_t3_like_contains)
             results_select_like_contains['users_no_login_idx (без индекса)'].append(time_t4_like_contains)
             
-            # Тест INSERT - ручное измерение времени
-            insert_iterations = 30
-            total_t3_time = 0
-            total_t4_time = 0
+            # Тест INSERT с timeit
+            def insert_user_with_index():
+                test_user = self.data_gen.generate_users(1, save=False)[0]
+                self.data_gen.insert_data([test_user], "users")
             
-            for i in range(insert_iterations):
-                # Генерируем уникального пользователя для T3
-                test_user_t3 = self.data_gen.generate_users(1, save=False)[0]
-                
-                # Измеряем INSERT в T3
-                start_time = time.time()
-                self.data_gen.insert_data([test_user_t3], "users")
-                total_t3_time += time.time() - start_time
-                
-                # Генерируем уникального пользователя для T4
-                test_user_t4 = self.data_gen.generate_users(1, save=False)[0]
-                
-                # Измеряем INSERT в T4
-                start_time = time.time()
-                self.data_gen.insert_data([test_user_t4], "users_no_login_idx")
-                total_t4_time += time.time() - start_time
+            def insert_user_without_index():
+                test_user = self.data_gen.generate_users(1, save=False)[0]
+                self.data_gen.insert_data([test_user], "users_no_login_idx")
             
-            results_insert['users (с индексом login)'].append(total_t3_time / insert_iterations)
-            results_insert['users_no_login_idx (без индекса)'].append(total_t4_time / insert_iterations)
+            time_insert3 = timeit.timeit(insert_user_with_index, number=30) / 30
+            time_insert4 = timeit.timeit(insert_user_without_index, number=30) / 30
+            
+            results_insert['users (с индексом login)'].append(time_insert3)
+            results_insert['users_no_login_idx (без индекса)'].append(time_insert4)
         
         # Построение графиков
         self.plotter.create_line_plot(
@@ -611,7 +526,7 @@ class IndexResearch:
                         lesson_id INTEGER,
                         date DATE,
                         text TEXT
-                    )
+                    );
                 """)
         
         # Генерируем тестовые данные
@@ -688,38 +603,28 @@ class IndexResearch:
             results_select_multi['comments (с FT индексом)'].append(time_t5_multi)
             results_select_multi['comments_no_ft (без FT)'].append(time_t6_multi)
             
-            # Тест INSERT - ручное измерение времени
-            insert_iterations = 20
-            total_t5_time = 0
-            total_t6_time = 0
-            
-            for i in range(insert_iterations):
-                # Генерируем уникальный комментарий для T5 с уникальной парой (lesson_id, date)
-                test_comment_t5 = {
-                    'lesson_id': lesson_ids[(i + size) % len(lesson_ids)],  # Используем разные lesson_id
-                    'date': f'2024-02-{(i % 28) + 1:02d}',  # Используем февраль для тестовых вставок
-                    'text': f'Новый комментарий о важности изучения программирования и алгоритмов {datetime.datetime.now().strftime("%H%M%S%f")}_{i}'
+            # Тест INSERT с timeit
+            def insert_comment_with_ft():
+                test_comment = {
+                    'lesson_id': lesson_ids[0],
+                    'date': '2024-02-01',
+                    'text': f'Новый комментарий о важности изучения программирования {datetime.datetime.now().strftime("%H%M%S%f")}'
                 }
-                
-                # Измеряем INSERT в T5
-                start_time = time.time()
-                self.data_gen.insert_data([test_comment_t5], "comments")
-                total_t5_time += time.time() - start_time
-                
-                # Генерируем уникальный комментарий для T6 с уникальной парой (lesson_id, date)
-                test_comment_t6 = {
-                    'lesson_id': lesson_ids[(i + size + 1) % len(lesson_ids)],
-                    'date': f'2024-02-{((i + 15) % 28) + 1:02d}',  # Сдвигаем дату
-                    'text': f'Другой комментарий о важности изучения математики {datetime.datetime.now().strftime("%H%M%S%f")}_{i}'
-                }
-                
-                # Измеряем INSERT в T6
-                start_time = time.time()
-                self.data_gen.insert_data([test_comment_t6], "comments_no_ft")
-                total_t6_time += time.time() - start_time
+                self.data_gen.insert_data([test_comment], "comments")
             
-            results_insert['comments (с FT индексом)'].append(total_t5_time / insert_iterations)
-            results_insert['comments_no_ft (без FT)'].append(total_t6_time / insert_iterations)
+            def insert_comment_without_ft():
+                test_comment = {
+                    'lesson_id': lesson_ids[0],
+                    'date': '2024-02-02',
+                    'text': f'Другой комментарий о важности изучения математики {datetime.datetime.now().strftime("%H%M%S%f")}'
+                }
+                self.data_gen.insert_data([test_comment], "comments_no_ft")
+            
+            time_insert5 = timeit.timeit(insert_comment_with_ft, number=20) / 20
+            time_insert6 = timeit.timeit(insert_comment_without_ft, number=20) / 20
+            
+            results_insert['comments (с FT индексом)'].append(time_insert5)
+            results_insert['comments_no_ft (без FT)'].append(time_insert6)
         
         # Построение графиков
         self.plotter.create_line_plot(
@@ -748,7 +653,6 @@ class IndexResearch:
             "Время выполнения (сек)",
             "fulltext_insert"
         )
-    
     def run_all_research(self):
         """Запуск всех исследований"""
         print("Запуск исследований эффективности индексов...")

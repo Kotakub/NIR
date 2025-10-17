@@ -8,11 +8,11 @@ import matplotlib.pyplot as plt
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from lib.bad_subd import CustomSimpleDB
+from lib.bad_subd import BadSUBD
 
 class CustomDBResearch:
     def __init__(self):
-        self.db = CustomSimpleDB()
+        self.db = BadSUBD()
         self.results_dir = "investigations/bad_subd"
         os.makedirs(self.results_dir, exist_ok=True)
     
